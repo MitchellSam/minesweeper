@@ -84,36 +84,47 @@ function cellFromEvent(e: Event): [number, number] | null {
   return [Number(target.dataset.x), Number(target.dataset.y)]
 }
 
-// Long-press = flag on touch devices; a completed long-press swallows the click.
+// Long-press = flag on touch devices. After one fires, the browser may follow
+// with contextmenu (Android), click, or nothing (iOS) — so those handlers only
+// read the flag, and it is reset at the start of the next interaction.
 let pressTimer: ReturnType<typeof setTimeout> | null = null
 let longPressFired = false
+let pressStart: { x: number; y: number } | null = null
+
+function cancelPress(): void {
+  if (pressTimer !== null) {
+    clearTimeout(pressTimer)
+    pressTimer = null
+  }
+  pressStart = null
+}
 
 grid.addEventListener('pointerdown', (e) => {
+  longPressFired = false
+  cancelPress()
   if (e.pointerType !== 'touch') return
   const pos = cellFromEvent(e)
   if (!pos) return
-  longPressFired = false
+  pressStart = { x: e.clientX, y: e.clientY }
   pressTimer = setTimeout(() => {
     longPressFired = true
+    pressTimer = null
     game.flag(pos[0], pos[1])
     render()
   }, 450)
 })
 
+grid.addEventListener('pointermove', (e) => {
+  if (pressStart === null) return
+  if (Math.hypot(e.clientX - pressStart.x, e.clientY - pressStart.y) > 8) cancelPress()
+})
+
 for (const evt of ['pointerup', 'pointercancel', 'pointerleave'] as const) {
-  grid.addEventListener(evt, () => {
-    if (pressTimer !== null) {
-      clearTimeout(pressTimer)
-      pressTimer = null
-    }
-  })
+  grid.addEventListener(evt, cancelPress)
 }
 
 grid.addEventListener('click', (e) => {
-  if (longPressFired) {
-    longPressFired = false
-    return
-  }
+  if (longPressFired) return
   const pos = cellFromEvent(e)
   if (!pos) return
   const [x, y] = pos
@@ -127,6 +138,7 @@ grid.addEventListener('click', (e) => {
 
 grid.addEventListener('contextmenu', (e) => {
   e.preventDefault()
+  if (longPressFired) return // Android fires contextmenu after a long-press; don't double-toggle
   const pos = cellFromEvent(e)
   if (!pos) return
   game.flag(pos[0], pos[1])
