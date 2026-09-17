@@ -1,0 +1,45 @@
+name: Claude Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  id-token: write
+  actions: read
+
+jobs:
+  auto-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Review this pull request for correctness bugs, security issues, and
+            spec drift against SPEC.md if present. Post ONE review comment on the
+            PR via `gh pr comment`. Start the comment with exactly "VERDICT: PASS"
+            if there are no blocking issues, or "VERDICT: BLOCK" if a change must
+            be made before merge, followed by your findings. Be concise; skip
+            style nits.
+          claude_args: "--max-turns 25"
+
+  mention:
+    if: github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
