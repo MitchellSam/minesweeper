@@ -8,7 +8,7 @@ Classic Minesweeper in the browser: a pure-TypeScript game engine (no DOM depend
 
 ## Definition of Done
 
-Live at http://mitchellsam.com/minesweeper/ (GitHub Pages), all milestones merged to main via auto-merged PRs, CI green on main, a Claude Review verdict comment on every milestone PR.
+Live at https://mitchellsam.github.io/minesweeper/ (GitHub Pages), all milestones merged to main via auto-merged PRs, CI green on main, a Claude Review verdict comment on every milestone PR.
 
 ## Non-goals
 
