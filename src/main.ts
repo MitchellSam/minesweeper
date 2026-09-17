@@ -1,6 +1,6 @@
 import './style.css'
 import { cellAt } from './engine'
-import { Game } from './game'
+import { type Difficulty, Game, PRESETS } from './game'
 import { APP_NAME } from './meta'
 
 const app = document.querySelector<HTMLDivElement>('#app')
@@ -20,15 +20,25 @@ app.innerHTML = `
   <div class="hud">
     <span id="mines" class="counter" aria-label="mines left"></span>
     <button id="new-game" aria-label="new game"></button>
+    <span id="timer" class="counter" aria-label="elapsed seconds">000</span>
+  </div>
+  <div class="hud sub">
+    <select id="difficulty" aria-label="difficulty">
+      ${Object.keys(PRESETS)
+        .map((d) => `<option value="${d}">${d}</option>`)
+        .join('')}
+    </select>
     <span id="result" class="result" role="status"></span>
   </div>
-  <div id="grid" class="grid" aria-label="minefield"></div>
+  <div class="grid-wrap"><div id="grid" class="grid" aria-label="minefield"></div></div>
 `
 
 const grid = document.querySelector<HTMLDivElement>('#grid')!
 const minesEl = document.querySelector<HTMLSpanElement>('#mines')!
+const timerEl = document.querySelector<HTMLSpanElement>('#timer')!
 const newGameBtn = document.querySelector<HTMLButtonElement>('#new-game')!
 const resultEl = document.querySelector<HTMLSpanElement>('#result')!
+const difficultyEl = document.querySelector<HTMLSelectElement>('#difficulty')!
 
 function cellLabel(x: number, y: number): string {
   const cell = cellAt(game.board, x, y)
@@ -38,8 +48,14 @@ function cellLabel(x: number, y: number): string {
   return cell.adjacent > 0 ? String(cell.adjacent) : ''
 }
 
+function renderTimer(): void {
+  const seconds = Math.min(999, Math.floor(game.elapsedMs / 1000))
+  timerEl.textContent = String(seconds).padStart(3, '0')
+}
+
 function render(): void {
   const { width, height } = game.board
+  grid.style.setProperty('--cols', String(width))
   grid.style.gridTemplateColumns = `repeat(${width}, var(--cell))`
   grid.replaceChildren()
   for (let y = 0; y < height; y++) {
@@ -59,6 +75,7 @@ function render(): void {
   minesEl.textContent = `🚩 ${game.minesLeft}`
   newGameBtn.textContent = FACE[game.status]
   resultEl.textContent = game.status === 'won' ? 'Cleared!' : game.status === 'lost' ? 'Boom.' : ''
+  renderTimer()
 }
 
 function cellFromEvent(e: Event): [number, number] | null {
@@ -67,7 +84,36 @@ function cellFromEvent(e: Event): [number, number] | null {
   return [Number(target.dataset.x), Number(target.dataset.y)]
 }
 
+// Long-press = flag on touch devices; a completed long-press swallows the click.
+let pressTimer: ReturnType<typeof setTimeout> | null = null
+let longPressFired = false
+
+grid.addEventListener('pointerdown', (e) => {
+  if (e.pointerType !== 'touch') return
+  const pos = cellFromEvent(e)
+  if (!pos) return
+  longPressFired = false
+  pressTimer = setTimeout(() => {
+    longPressFired = true
+    game.flag(pos[0], pos[1])
+    render()
+  }, 450)
+})
+
+for (const evt of ['pointerup', 'pointercancel', 'pointerleave'] as const) {
+  grid.addEventListener(evt, () => {
+    if (pressTimer !== null) {
+      clearTimeout(pressTimer)
+      pressTimer = null
+    }
+  })
+}
+
 grid.addEventListener('click', (e) => {
+  if (longPressFired) {
+    longPressFired = false
+    return
+  }
   const pos = cellFromEvent(e)
   if (!pos) return
   const [x, y] = pos
@@ -91,5 +137,14 @@ newGameBtn.addEventListener('click', () => {
   game.newGame()
   render()
 })
+
+difficultyEl.addEventListener('change', () => {
+  game.setDifficulty(difficultyEl.value as Difficulty)
+  render()
+})
+
+setInterval(() => {
+  if (game.status === 'playing') renderTimer()
+}, 250)
 
 render()
