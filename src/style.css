@@ -148,6 +148,29 @@ h1 {
   background: #c0392b;
 }
 
+.cell.boom {
+  animation: boom 0.35s ease-out backwards;
+}
+
+@keyframes boom {
+  0% {
+    transform: scale(0.3);
+    background: #f6c344;
+  }
+  60% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell.boom {
+    animation: none;
+  }
+}
+
 .cell.n1 { color: #2563eb; }
 .cell.n2 { color: #16803c; }
 .cell.n3 { color: #dc2626; }
