@@ -32,7 +32,7 @@ jobs:
             if there are no blocking issues, or "VERDICT: BLOCK" if a change must
             be made before merge, followed by your findings. Be concise; skip
             style nits.
-          claude_args: "--model claude-opus-5 --max-turns 25"
+          claude_args: "--model claude-opus-5 --max-turns 60"
 
   mention:
     if: github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')
