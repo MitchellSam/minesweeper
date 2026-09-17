@@ -1,5 +1,4 @@
 :root {
-  --cell: 34px;
   --bg: #f2f0eb;
   --panel: #e2ded6;
   --hidden: #b8c4d4;
@@ -85,7 +84,30 @@ h1 {
   font-weight: 600;
 }
 
+.hud.sub {
+  background: none;
+  padding: 0.25rem 0;
+}
+
+#difficulty {
+  font: inherit;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  text-transform: capitalize;
+}
+
+.grid-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
 .grid {
+  --cols: 9;
+  --cell: clamp(20px, calc((100vw - 60px - 2px * var(--cols)) / var(--cols)), 34px);
   display: grid;
   gap: 2px;
   padding: 6px;
@@ -109,6 +131,7 @@ h1 {
   color: var(--text);
   cursor: pointer;
   padding: 0;
+  touch-action: manipulation;
 }
 
 .cell:not(.revealed):hover {
