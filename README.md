@@ -2,7 +2,7 @@
 
 Classic Minesweeper in the browser — a pure-TypeScript engine driving a vanilla DOM UI. Built end-to-end by an AI dev pipeline as its pilot project (spec in [SPEC.md](SPEC.md)).
 
-**Play it:** http://mitchellsam.com/minesweeper/
+**Play it:** https://mitchellsam.github.io/minesweeper/
 
 ![Minesweeper screenshot](docs/screenshot.png)
 
