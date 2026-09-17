@@ -1,4 +1,5 @@
 import './style.css'
+import { loadBestTimes, recordBestTime } from './best-times'
 import { cellAt } from './engine'
 import { type Difficulty, Game, PRESETS } from './game'
 import { APP_NAME } from './meta'
@@ -28,6 +29,7 @@ app.innerHTML = `
         .map((d) => `<option value="${d}">${d}</option>`)
         .join('')}
     </select>
+    <span id="best" class="counter" aria-label="best time"></span>
     <span id="result" class="result" role="status"></span>
   </div>
   <div class="grid-wrap"><div id="grid" class="grid" aria-label="minefield"></div></div>
@@ -39,6 +41,18 @@ const timerEl = document.querySelector<HTMLSpanElement>('#timer')!
 const newGameBtn = document.querySelector<HTMLButtonElement>('#new-game')!
 const resultEl = document.querySelector<HTMLSpanElement>('#result')!
 const difficultyEl = document.querySelector<HTMLSelectElement>('#difficulty')!
+const bestEl = document.querySelector<HTMLSpanElement>('#best')!
+
+let bestRecorded = false
+let gotNewBest = false
+
+function currentDifficulty(): Difficulty {
+  return difficultyEl.value as Difficulty
+}
+
+function formatSeconds(ms: number): string {
+  return String(Math.min(999, Math.floor(ms / 1000))).padStart(3, '0')
+}
 
 function cellLabel(x: number, y: number): string {
   const cell = cellAt(game.board, x, y)
@@ -54,7 +68,14 @@ function renderTimer(): void {
 }
 
 function render(): void {
+  if (game.status === 'won' && !bestRecorded) {
+    bestRecorded = true
+    gotNewBest = recordBestTime(currentDifficulty(), game.elapsedMs)
+  }
+
   const { width, height } = game.board
+  const lost = game.status === 'lost'
+  let mineIndex = 0
   grid.style.setProperty('--cols', String(width))
   grid.style.gridTemplateColumns = `repeat(${width}, var(--cell))`
   grid.replaceChildren()
@@ -65,6 +86,10 @@ function render(): void {
       el.className = 'cell'
       if (cell.state === 'revealed') {
         el.classList.add('revealed', cell.mine ? 'mine' : `n${cell.adjacent}`)
+        if (lost && cell.mine) {
+          el.classList.add('boom')
+          el.style.animationDelay = `${mineIndex++ * 70}ms`
+        }
       }
       el.dataset.x = String(x)
       el.dataset.y = String(y)
@@ -74,7 +99,10 @@ function render(): void {
   }
   minesEl.textContent = `🚩 ${game.minesLeft}`
   newGameBtn.textContent = FACE[game.status]
-  resultEl.textContent = game.status === 'won' ? 'Cleared!' : game.status === 'lost' ? 'Boom.' : ''
+  resultEl.textContent =
+    game.status === 'won' ? (gotNewBest ? 'New best!' : 'Cleared!') : game.status === 'lost' ? 'Boom.' : ''
+  const best = loadBestTimes()[currentDifficulty()]
+  bestEl.textContent = best === undefined ? 'best —' : `best ${formatSeconds(best)}`
   renderTimer()
 }
 
@@ -145,14 +173,24 @@ grid.addEventListener('contextmenu', (e) => {
   render()
 })
 
-newGameBtn.addEventListener('click', () => {
+function startNewGame(): void {
   game.newGame()
+  bestRecorded = false
+  gotNewBest = false
+  render()
+}
+
+newGameBtn.addEventListener('click', startNewGame)
+
+difficultyEl.addEventListener('change', () => {
+  game.setDifficulty(currentDifficulty())
+  bestRecorded = false
+  gotNewBest = false
   render()
 })
 
-difficultyEl.addEventListener('change', () => {
-  game.setDifficulty(difficultyEl.value as Difficulty)
-  render()
+document.addEventListener('keydown', (e) => {
+  if (e.key.toLowerCase() === 'r' && !e.metaKey && !e.ctrlKey && !e.altKey) startNewGame()
 })
 
 setInterval(() => {
